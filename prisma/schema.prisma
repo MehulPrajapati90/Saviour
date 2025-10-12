@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CO_ADMIN
+  USER
+}
+
+enum Media {
+  VIDEO
+  IMAGE
+  PDF
+  AUDIO
+}
+
+model User {
+  id          String   @id @default(cuid())
+  clerkId     String   @unique
+  email       String   @unique
+  username    String?  @unique
+  firstName   String?
+  lastName    String?
+  imageUrl    String?
+  store_count Int?     @default(0)
+  role        Role     @default(USER)
+  store       Store[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Store {
+  id          String  @id @default(cuid())
+  media_url   String
+  title       String?
+  description String?
+  size        Int
+  durationSec Int?
+  userId      String
+  media_type  Media?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
