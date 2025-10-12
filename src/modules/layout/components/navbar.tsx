@@ -33,7 +33,7 @@ const Navbar = () => {
                         </div>
                     </Link>
 
-                    <div className="flex justify-center items-center gap-5">
+                    <div className="flex justify-center items-center gap-2">
 
                         {isSignedInUser && (
                             <Link href={'/dashboard/workspace'} className="text-[14.5px] font-medium tracking-[-0.5px] border dark:border-[#404040] border-zinc-200 dark:bg-zinc-900/50 bg-white dark:hover:bg-zinc-900 hover:bg-[#f7f7f7] text-[#101114] dark:text-white py-2 px-6 rounded-[6px] transition-all ease-in-out duration-150">Dashboard</Link>
