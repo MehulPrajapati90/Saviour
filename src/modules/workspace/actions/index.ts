@@ -1,14 +1,15 @@
 "use server";
 
 import { currentUser } from "@clerk/nextjs/server";
-import { UploadFileDataProp } from "../types";
+import { DeleteMediaProps, UploadFileDataProp } from "../types";
 import { client } from "@/lib/db";
 import { UploadApplicationFiletoCloudinary, UploadAudiotoCloudinary, UploadImagestoCloudinary, UploadTextFiletoCloudinary, UploadVideotoCloudinary } from "./cloudinary";
+import { Media } from "@prisma/client";
 
 // upload in one go.
 export const UploadFileData = async (data: UploadFileDataProp) => {
     try {
-        const { file, title, description, category } = data;
+        const { file, title, description } = data;
         const user = await currentUser();
 
         if (!user) {
@@ -41,17 +42,26 @@ export const UploadFileData = async (data: UploadFileDataProp) => {
 
         // @ts-ignore
         const duration = upload?.duration ? upload?.duration : 0;
-        const saveData = await client.store.create({
-            data: {
-                userId: dbuser?.id || '',
-                media_type: category,
-                media_url: upload?.url || '',
-                durationSec: duration,
-                title: title,
-                description: description,
-                size: Number(upload?.size)
-            }
-        })
+        const [saveData] = await client.$transaction([
+            client.store.create({
+                data: {
+                    userId: dbuser?.id || '',
+                    media_type: upload.media as Media,
+                    media_url: upload?.url || '',
+                    durationSec: duration,
+                    title,
+                    description,
+                    size: Number(upload?.size),
+                },
+            }),
+
+            client.user.update({
+                where: { id: dbuser?.id },
+                data: {
+                    store_count: { increment: 1 },
+                },
+            }),
+        ]);
 
         return {
             success: true,
@@ -102,6 +112,41 @@ export const GetMedia = async () => {
         return {
             success: false,
             error: "Error Fetching Data!"
+        }
+    }
+}
+
+
+export const DeleteMedia = async ({ id }: DeleteMediaProps) => {
+    const user = await currentUser();
+    try {
+        const dbuser = await client.user.findUnique({
+            where: {
+                clerkId: user?.id
+            }
+        })
+
+        const deleteMedia = await client.store.delete({
+            where: {
+                id: id
+            }
+        })
+
+        if (!deleteMedia) {
+            return {
+                success: false,
+                error: "Error Deleting Data!"
+            }
+        }
+
+        return {
+            success: true,
+            message: "Deleted successfully"
+        }
+    } catch (e) {
+        return {
+            success: false,
+            error: "Error Deleting Data!"
         }
     }
 }
