@@ -64,9 +64,12 @@ export interface UploadDataApplication {
     file: File
 }
 
+export interface DeleteMediaProps {
+    id: string
+}
+
 export interface UploadFileDataProp {
     file: File;
     title: string;
     description: string
-    category?: Media
 }

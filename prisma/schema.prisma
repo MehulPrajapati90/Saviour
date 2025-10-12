@@ -16,7 +16,8 @@ enum Role {
 enum Media {
   VIDEO
   IMAGE
-  PDF
+  APPLICATION
+  TEXT
   AUDIO
 }
 
