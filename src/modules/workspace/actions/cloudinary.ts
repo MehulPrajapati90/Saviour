@@ -2,12 +2,13 @@
 
 import { v2 as cloudinary } from "cloudinary";
 import { UploadDataApplication, UploadDataAudio, UploadDataImage, UploadDataText, UploadDataVideo, UploadResultApplicationFile, UploadResultAudio, UploadResultImage, UploadResultTextFile, UploadResultVideo } from "../types";
+import streamifier from "streamifier";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_NAME || "",
     api_key: process.env.CLOUDINARY_API_KEY || "",
     api_secret: process.env.CLOUDINARY_API_SECRET || "",
-    timeout: 60000,
+    timeout: 600000,
 });
 
 export const UploadAudiotoCloudinary = async ({ file }: UploadDataAudio): Promise<UploadResultAudio> => {
@@ -26,6 +27,7 @@ export const UploadAudiotoCloudinary = async ({ file }: UploadDataAudio): Promis
         const uploadResult = await cloudinary.uploader.upload(base64Str, {
             resource_type: "video",
             folder: "songs",
+            chunk_size: 6000000,
         });
 
         return {
@@ -95,7 +97,7 @@ export const UploadTextFiletoCloudinary = async ({ file }: UploadDataText): Prom
         const base64Str = `data:${file.type};base64,${Buffer.from(arrayBuffer).toString("base64")}`;
 
         const uploadResult = await cloudinary.uploader.upload(base64Str, {
-            resource_type: "raw",
+            resource_type: "auto",
             folder: "uploads/text-files",
         });
 
@@ -112,41 +114,46 @@ export const UploadTextFiletoCloudinary = async ({ file }: UploadDataText): Prom
 
 }
 
-export const UploadVideotoCloudinary = async ({ file }: UploadDataVideo): Promise<UploadResultVideo> => {
-    if (!file) {
-        return { success: false, error: "No file provided" };
-    }
-
-    if (!file.type.startsWith("video/")) {
+export const UploadVideotoCloudinary = async ({
+    file,
+}: UploadDataVideo): Promise<UploadResultVideo> => {
+    if (!file) return { success: false, error: "No file provided" };
+    if (!file.type.startsWith("video/"))
         return { success: false, error: "Only video files are allowed" };
-    }
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        const base64Str = `data:${file.type};base64,${Buffer.from(arrayBuffer).toString("base64")}`;
+        const buffer = Buffer.from(arrayBuffer);
 
-        const uploadResult = await cloudinary.uploader.upload(base64Str, {
-            resource_type: "video",
-            folder: "uploads/videos",
-            chunk_size: 6000000,
-            eager: [
-                { width: 1280, height: 720, crop: "limit", format: "mp4" },
-            ],
+        const uploadResult: any = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    resource_type: "video",
+                    folder: "uploads/videos",
+                    chunk_size: 6_000_000, // 6 MB chunks
+                    eager: [{ width: 1280, height: 720, crop: "limit", format: "mp4" }],
+                },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+
+            streamifier.createReadStream(buffer).pipe(uploadStream);
         });
-
-        const optimizedUrl = uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url;
 
         return {
             success: true,
-            url: optimizedUrl,
-            size: file.size,
-            media: "VIDEO"
+            url: uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url,
+            size: uploadResult.bytes,
+            duration: uploadResult.duration || 0,
+            media: "VIDEO",
         };
     } catch (error: any) {
         console.error("Cloudinary upload error:", error);
-        return { success: false, error: error.message || "Failed to upload" };
+        return { success: false, error: error.message || "Failed to upload video" };
     }
-}
+};
 
 export const UploadApplicationFiletoCloudinary = async ({ file }: UploadDataApplication): Promise<UploadResultApplicationFile> => {
     if (!file) {
@@ -162,8 +169,9 @@ export const UploadApplicationFiletoCloudinary = async ({ file }: UploadDataAppl
         const base64Str = `data:${file.type};base64,${Buffer.from(arrayBuffer).toString("base64")}`;
 
         const uploadResult = await cloudinary.uploader.upload(base64Str, {
-            resource_type: "raw",
+            resource_type: "auto",
             folder: "uploads/applications",
+            chunk_size: 60000
         });
 
         return {

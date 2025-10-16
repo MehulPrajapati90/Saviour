@@ -1,8 +1,8 @@
 export const Media = {
     VIDEO: "VIDEO",
     IMAGE: "IMAGE",
-    APPLICATION: "APPLICATION, ex : .ppt, .pdf",
-    TEXT: "TEXT ex : .txt",
+    APPLICATION: "APPLICATION",
+    TEXT: "TEXT",
     AUDIO: "AUDIO"
 } as const;
 
