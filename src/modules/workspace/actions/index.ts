@@ -45,13 +45,15 @@ export const UploadFileData = async (data: UploadFileDataProp) => {
         const [saveData] = await client.$transaction([
             client.store.create({
                 data: {
-                    userId: dbuser?.id || '',
                     media_type: upload.media as Media,
                     media_url: upload?.url || '',
                     durationSec: duration,
                     title,
                     description,
                     size: Number(upload?.size),
+                    user: {
+                        connect: { id: dbuser?.id }
+                    }
                 },
             }),
 

@@ -9,7 +9,7 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useUploadForm } from '../store';
-import { useUploadMedia } from '../hooks/upload';
+import { useUploadMedia } from '../hooks/workspace';
 import { LoaderCircle } from 'lucide-react';
 import { Media } from '../types/media-types';
 import { UploadFileDataProp } from '../types';
